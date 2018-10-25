@@ -54,26 +54,6 @@ This is not necessary but something you eventually need to do.
 - Copy and past the following
 
 ```
-haxelib install hxnodejs
-haxelib git js-kit https://github.com/clemos/haxe-js-kit.git haxelib
-haxelib install markdown
-haxelib install msignal
+haxelib install hxSerial
 ```
 
-## Step 5 (Extra): Install NPM/Node.js
-
-Download Node.js: get your version here: [https://nodejs.org/](https://nodejs.org/)
-
-- Download
-- And install
-
-Now you have access to NPM.
-
-- Open `terminal`
-- Copy and paste the following (and see current NPM version)
-
-```
-npm -v
-```
-
----
