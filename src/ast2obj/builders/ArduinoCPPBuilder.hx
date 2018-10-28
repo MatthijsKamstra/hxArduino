@@ -113,11 +113,16 @@ class ArduinoCPPBuilder {
             if (cv.type.typeParameters.length > 0) {
                 sb.add("<");
                 for (i in 0...cv.type.typeParameters.length) {
-                    if (isInternalType(cv.type.typeParameters[i].safeName)) {
-                        sb.add(substTypeName(cv.type.typeParameters[i].safeName));
+                    var oclass = findClass(cv.type.typeParameters[i].name);
+                    var varTypeName = cv.type.typeParameters[i].safeName;
+                    if (oclass != null && oclass.externName != null) {
+                        varTypeName = oclass.externName;
+                    }
+                    if (isInternalType(varTypeName)) {
+                        sb.add(substTypeName(varTypeName));
                     } else {
                         sb.add("AutoPtr<");
-                        sb.add(substTypeName(cv.type.typeParameters[i].safeName));
+                        sb.add(substTypeName(varTypeName));
                         sb.add(">");
                         addRef("AutoPtr");
                     }
@@ -217,14 +222,18 @@ class ArduinoCPPBuilder {
         for (i in 0... m.args.length) {
             var arg = m.args[i];
             var oclass = findClass(arg.type.name);
-            if (isInternalType(substTypeName(arg.type.safeName))) {
-                sb.add(substTypeName(arg.type.safeName));
+            var varTypeName = arg.type.safeName;
+            if (oclass != null && oclass.externName != null) {
+                varTypeName = oclass.externName;
+            }
+            if (isInternalType(substTypeName(varTypeName))) {
+                sb.add(substTypeName(varTypeName));
             } else if (oclass.stackOnly) {
-                sb.add(substTypeName(arg.type.safeName));
+                sb.add(substTypeName(varTypeName));
                 sb.add("&");
             } else {
                 sb.add("AutoPtr<");
-                sb.add(substTypeName(arg.type.safeName));
+                sb.add(substTypeName(varTypeName));
                 sb.add(">");
                 addRef("AutoPtr");
             }
@@ -334,12 +343,17 @@ class ArduinoCPPBuilder {
             sb.add(buildExpression(olocal.nextExpression, tabs));
         } else if (Std.is(e, OIf)) {
             var oif = cast(e, OIf);
-            sb.add("\n");
-            sb.add(tabs);
+            //sb.add("\n");
+            //sb.add(tabs);
             sb.add("if ");
             sb.add(buildExpression(oif.conditionExpression, tabs));
             sb.add(" ");
             sb.add(buildExpression(oif.ifExpression, tabs));
+            if (oif.elseExpression != null) {
+                sb.add(tabs);
+                sb.add("else ");
+                sb.add(buildExpression(oif.elseExpression, tabs));
+            }
         } else if (Std.is(e, OParenthesis)) {
             var oparenthesis = cast(e, OParenthesis);
             sb.add("(");
@@ -456,6 +470,87 @@ class ArduinoCPPBuilder {
         } else if (Std.is(e, OConstantIdentifier)) {
             var oconstantidentifier = cast(e, OConstantIdentifier);
             sb.add(oconstantidentifier.name);
+        } else if (Std.is(e, OSwitch)) {
+            var oswitch = cast(e, OSwitch);
+            if (oswitch.type.name == "Int") {
+                // If the type of the switch is an int, it means c++ can handle it, lets generate a normal 
+                // c++ switch block
+                sb.add("switch ");
+                sb.add(buildExpression(oswitch.expression, tabs));
+                sb.add(" {\n");
+                var tabs2 = tabs + tabs;
+                for (ocase in oswitch.cases) {
+                    var ncase = 0;
+                    for (caseExpression in ocase.caseExpressions) {
+                        sb.add(tabs2);
+                        sb.add("case ");
+                        
+                        if (Std.is(caseExpression, OConstant)) {
+                            var oconstant = cast(caseExpression, OConstant);
+                            sb.add(oconstant.value);
+                        } else {
+                            sb.add(buildExpression(caseExpression, tabs));
+                        }
+                        sb.add(": ");
+                        if (ncase < ocase.caseExpressions.length - 1) {
+                            sb.add("\n");
+                        }
+                        ncase++;
+                    }
+                    
+                    sb.add(buildExpression(ocase.expression, tabs2));
+                    
+                    sb.add(tabs2);
+                    sb.add("break;\n\n");
+                }
+                
+                if (oswitch.defaultExpression != null) {
+                    sb.add(tabs2);
+                    sb.add("default: ");
+                    sb.add(buildExpression(oswitch.defaultExpression, tabs2));
+                    sb.add(tabs2);
+                    sb.add("break;\n\n");
+                }
+                
+                sb.add(tabs);
+                sb.add("}");
+            } else {
+                // if the type of the switch is anything else, for example an string, then a normal c++ switch statement
+                // isnt going to work, so lets generate a bunch of if / elses to emulate a switch
+                var first:Bool = true;
+                for (ocase in oswitch.cases) {
+                    if (first == true) {
+                        sb.add("if ");
+                    } else {
+                        sb.add(tabs);
+                        sb.add("else if ");
+                    }
+                    sb.add("(");
+                    var caseExpressions:Array<OExpression> = ocase.caseExpressions;
+                    var ncase:Int = 0;
+                    for (caseExpression in caseExpressions) {
+                        sb.add(buildExpression(oswitch.expression, tabs));
+                        sb.add(" == ");
+                        sb.add(buildExpression(caseExpression, tabs));
+                        if (ncase < caseExpressions.length - 1) {
+                            sb.add(" || ");
+                        }
+                        ncase++;
+                    }
+                    sb.add(") ");
+                    sb.add(buildExpression(ocase.expression, tabs));
+                    
+                    if (first == true) {
+                        first = false;
+                    }
+                }
+                
+                if (oswitch.defaultExpression != null) {
+                    sb.add(tabs);
+                    sb.add("else ");
+                    sb.add(buildExpression(oswitch.defaultExpression, tabs));
+                }
+            }
         } else {
             trace("ArduinoCPPBuilder::buildExpression - " + Type.getClassName(Type.getClass(e)));
         }

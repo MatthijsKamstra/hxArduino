@@ -178,10 +178,13 @@ class Generator {
                 oexpr.id = v.id;
                 cast(oexpr, OLocal).name = v.name;
                 cast(oexpr, OLocal).type = buildType(v.t);
-            case TIf(econd, eif, null):
+            case TIf(econd, eif, eelse):
                 oexpr = new OIf();
                 cast(oexpr, OIf).conditionExpression = buildExpression(econd, oexpr);
                 cast(oexpr, OIf).ifExpression = buildExpression(eif, oexpr);
+                if (eelse != null) {
+                    cast(oexpr, OIf).elseExpression = buildExpression(eelse, oexpr);
+                }
             case TParenthesis(e):
                 oexpr = new OParenthesis();
                 oexpr.nextExpression = buildExpression(e, oexpr);
@@ -237,6 +240,22 @@ class Generator {
                 oexpr = new OTypeExprClass();
                 cast(oexpr, OTypeExprClass).cls = new OClass();
                 cast(oexpr, OTypeExprClass).cls.fullName += c.toString();
+            case TMeta(m, e):
+                oexpr = buildExpression(e, prevExpression);
+            case TSwitch(e, cases, edef):
+                oexpr = new OSwitch();
+                cast(oexpr, OSwitch).type = buildType(e.t);
+                cast(oexpr, OSwitch).expression = buildExpression(e, oexpr);
+                for (c in cases) {
+                    var ocase = new OCase();
+                    cast(oexpr, OSwitch).cases.push(ocase);
+                    for (t in c.values) {
+                        ocase.caseExpressions.push(buildExpression(t, oexpr));
+                        ocase.expression = buildExpression(c.expr, oexpr);
+                        buildExpression(t, oexpr);
+                    }
+                }
+                cast(oexpr, OSwitch).defaultExpression = buildExpression(edef, oexpr);
             case _:
                 trace("buildExpression not impl: " + e.expr);
         }
