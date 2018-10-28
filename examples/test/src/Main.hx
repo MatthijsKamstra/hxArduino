@@ -3,7 +3,7 @@ package;
 
 class Main {
 
-	var name = 'matthijs';
+	// var name = 'matthijs';
 	// var name:String;
 
 	public function setup() {
@@ -13,6 +13,12 @@ class Main {
 		// // trace('matthijs');
 		// var arr = [1,2];
 		// arr.push(3);
+
+		if ( true) {
+			Serial.println('t');
+		} else {
+			Serial.println('f');
+		}
     }
 
     public function loop() {

@@ -14,11 +14,11 @@ class ArduinoCPPBuilder {
     public static var srcPath:String = "%BASE%/build/hxArduino/src";
     public static var includePath:String = "%BASE%/build/hxArduino/include";
     public static var outPath:String = "%BASE%/build/hxArduino/out";
-    
+
     public static var classes:Array<OClass> = [];
-    
+
     public static var libraries:Array<String> = [];
-    
+
     public static function build() {
         srcPath = Path.normalize(StringTools.replace(srcPath, "%BASE%", basePath));
         includePath = Path.normalize(StringTools.replace(includePath, "%BASE%", basePath));
@@ -26,7 +26,7 @@ class ArduinoCPPBuilder {
         FileSystem.createDirectory(srcPath);
         FileSystem.createDirectory(includePath);
         FileSystem.createDirectory(outPath);
-        
+
         for (c in classes) {
             if (c.isExtern == false) {
                 buildClassHeader(c);
@@ -36,31 +36,31 @@ class ArduinoCPPBuilder {
                 addRefs(c.externIncludes);
             }
         }
-        
+
         // copy support files (not generated)
         var supportPath = Path.normalize(HaxeLibHelper.getLibPath("hxArduino") + "/lib");
         FileHelper.copyFiles(supportPath, includePath, "h");
         FileHelper.copyFiles(supportPath, srcPath, "cpp");
     }
-    
+
     public static function findClass(name:String):OClass {
         var oclass = null;
-        
+
         for (c in classes) {
             if (c.fullName == name || c.safeName.toLowerCase() == name.toLowerCase()) {
                 oclass = c;
                 break;
             }
-            
+
             if (c.isExtern && c.externName == name) {
                 oclass = c;
                 break;
             }
         }
-        
+
         return oclass;
     }
-    
+
     private static var _refs:Array<String>;
     private static var _currentClass:OClass;
     private static var _currentMethod:OMethod;
@@ -70,15 +70,15 @@ class ArduinoCPPBuilder {
         if (c.fullName == "Main") {  // TODO: does this make it brittle - dont really want Main to be extended from HxObject
             c.stackOnly = true;
         }
-        
+
         var sb = new StringBuf();
         var filename = Path.normalize(includePath + "/" + c.safeName + ".h");
-        
+
         sb.add("#ifndef " + c.safeName + "_h_\n");
         sb.add("#define " + c.safeName + "_h_ 1\n\n");
-        
+
         sb.add("%INCLUDES%\n");
-        
+
         sb.add("class ");
         sb.add(c.safeName);
         if (c.superClass != null) {
@@ -91,7 +91,7 @@ class ArduinoCPPBuilder {
         sb.add(" {\n");
 
         sb.add("    public:\n");
-        
+
         for (cv in c.classVars) {
             sb.add("        ");
             var oclass = findClass(cv.type.name);
@@ -109,7 +109,7 @@ class ArduinoCPPBuilder {
                 sb.add(">");
                 addRef("AutoPtr");
             }
-            
+
             if (cv.type.typeParameters.length > 0) {
                 sb.add("<");
                 for (i in 0...cv.type.typeParameters.length) {
@@ -132,10 +132,10 @@ class ArduinoCPPBuilder {
                 }
                 sb.add(">");
             }
-            
+
             sb.add(" ");
             sb.add(cv.name);
-            
+
             if (cv.expression != null) {
                 sb.add(" = ");
                 sb.add(buildExpression(cv.expression, "        "));
@@ -146,60 +146,60 @@ class ArduinoCPPBuilder {
             sb.add("\n");
         }
         sb.add("\n");
-        
+
         for (m in c.methods) {
             _currentMethod = m;
             sb.add(buildMethod(m, "        "));
             sb.add("\n");
         }
-        
+
         sb.add("};\n");
 
         sb.add("\n#endif");
-        
+
         var includes = "";
         for (ref in _refs) {
             includes += "#include <" + ref + ".h>\n";
         }
-        
+
         var contents = sb.toString();
         contents = StringTools.replace(contents, "%INCLUDES%", includes);
         File.saveContent(filename, contents);
     }
-    
-    
+
+
     private static function buildClassImpl(c:OClass){
-        
+
         _refs = [];
         _currentClass = c;
         var sb = new StringBuf();
 
         sb.add("#include \"" + c.safeName + ".h\"\n");
         sb.add("%INCLUDES%\n");
-        
+
         var filename = Path.normalize(srcPath + "/" + c.safeName + ".cpp");
-        
+
         for (m in c.methods) {
             _currentMethod = m;
             sb.add(buildMethod(m, "", false));
             sb.add("\n");
         }
-        
+
         var includes = "";
         for (ref in _refs) {
             includes += "#include <" + ref + ".h>\n";
         }
-        
+
         var contents = sb.toString();
         contents = StringTools.replace(contents, "%INCLUDES%", includes);
         File.saveContent(filename, contents);
     }
-    
-    
+
+
     private static function buildMethod(m:OMethod, tabs:String, header:Bool = true) {
         var sb:StringBuf = new StringBuf();
         sb.add(tabs);
-        
+
         var oclass = findClass(m.type.name);
         if (isInternalType(substTypeName(m.type.safeName))) {
             sb.add(substTypeName(m.type.safeName));
@@ -248,28 +248,28 @@ class ArduinoCPPBuilder {
             }
         }
         sb.add(")");
-        
+
         if (header == true) {
             sb.add(";");
         } else {
             sb.add(" ");
             sb.add(buildExpression(m.expression, tabs));
         }
-        
+
         return sb.toString();
     }
-    
+
     private static function buildExpression(e:OExpression, tabs:String) {
         if (e == null) {
             return "";
         }
-        
+
         var sb = new StringBuf();
 
         if (Std.is(e, OBlock)) {
             var oblock = cast(e, OBlock);
             sb.add("{\n");
-            
+
             for (e in oblock.expressions) {
                 sb.add(tabs + "    ");
                 var expressionString = buildExpression(e, tabs + "    ");
@@ -280,10 +280,10 @@ class ArduinoCPPBuilder {
                     && StringTools.endsWith(StringTools.trim(expressionString), ";") != true) {
                     sb.add(";");
                 }
-                
+
                 sb.add("\n");
             }
-            
+
             sb.add(tabs);
             sb.add("}\n");
         } else if (Std.is(e, OReturn)) {
@@ -347,13 +347,15 @@ class ArduinoCPPBuilder {
             //sb.add(tabs);
             sb.add("if ");
             sb.add(buildExpression(oif.conditionExpression, tabs));
-            sb.add(" ");
+            sb.add(" { ");
             sb.add(buildExpression(oif.ifExpression, tabs));
+            sb.add("; }");
             if (oif.elseExpression != null) {
-                sb.add(tabs);
-                sb.add("else ");
+                sb.add(" else {");
                 sb.add(buildExpression(oif.elseExpression, tabs));
+                sb.add("; }");
             }
+            sb.add(";");
         } else if (Std.is(e, OParenthesis)) {
             var oparenthesis = cast(e, OParenthesis);
             sb.add("(");
@@ -435,7 +437,7 @@ class ArduinoCPPBuilder {
             if (oclass != null && oclass.externName != null) {
                 varTypeName = oclass.externName;
             }
-            
+
             if (isInternalType(substTypeName(varTypeName))) {
                 sb.add(substTypeName(onew.cls.safeName));
             } else {
@@ -473,7 +475,7 @@ class ArduinoCPPBuilder {
         } else if (Std.is(e, OSwitch)) {
             var oswitch = cast(e, OSwitch);
             if (oswitch.type.name == "Int") {
-                // If the type of the switch is an int, it means c++ can handle it, lets generate a normal 
+                // If the type of the switch is an int, it means c++ can handle it, lets generate a normal
                 // c++ switch block
                 sb.add("switch ");
                 sb.add(buildExpression(oswitch.expression, tabs));
@@ -484,7 +486,7 @@ class ArduinoCPPBuilder {
                     for (caseExpression in ocase.caseExpressions) {
                         sb.add(tabs2);
                         sb.add("case ");
-                        
+
                         if (Std.is(caseExpression, OConstant)) {
                             var oconstant = cast(caseExpression, OConstant);
                             sb.add(oconstant.value);
@@ -497,13 +499,13 @@ class ArduinoCPPBuilder {
                         }
                         ncase++;
                     }
-                    
+
                     sb.add(buildExpression(ocase.expression, tabs2));
-                    
+
                     sb.add(tabs2);
                     sb.add("break;\n\n");
                 }
-                
+
                 if (oswitch.defaultExpression != null) {
                     sb.add(tabs2);
                     sb.add("default: ");
@@ -511,7 +513,7 @@ class ArduinoCPPBuilder {
                     sb.add(tabs2);
                     sb.add("break;\n\n");
                 }
-                
+
                 sb.add(tabs);
                 sb.add("}");
             } else {
@@ -539,12 +541,12 @@ class ArduinoCPPBuilder {
                     }
                     sb.add(") ");
                     sb.add(buildExpression(ocase.expression, tabs));
-                    
+
                     if (first == true) {
                         first = false;
                     }
                 }
-                
+
                 if (oswitch.defaultExpression != null) {
                     sb.add(tabs);
                     sb.add("else ");
@@ -554,13 +556,13 @@ class ArduinoCPPBuilder {
         } else {
             trace("ArduinoCPPBuilder::buildExpression - " + Type.getClassName(Type.getClass(e)));
         }
-        
+
         return sb.toString();
     }
-    
+
     private static function buildConstant(c:OConstant) {
         var sb = new StringBuf();
-        
+
         switch (c.type) {
             case "Int":
                 sb.add(c.value);
@@ -575,10 +577,10 @@ class ArduinoCPPBuilder {
             case _:
                 trace("buildConstant not impl: " + c.type);
         }
-        
+
         return sb;
     }
-    
+
     private static function substTypeName(typeName:String):String {
         switch (typeName) {
             case "Array":
@@ -591,7 +593,7 @@ class ArduinoCPPBuilder {
                 typeName = "void";
             case _:
         }
-        
+
         //addRef(typeName);
         var oclass = findClass(typeName);
         if (oclass != null) {
@@ -604,10 +606,10 @@ class ArduinoCPPBuilder {
         } else {
             addRef(typeName);
         }
-        
+
         return typeName;
     }
-    
+
     private static function substFieldName(className:String, fieldName:String):String {
         if (className == "Array") {
             switch (fieldName) {
@@ -619,7 +621,7 @@ class ArduinoCPPBuilder {
         }
         return fieldName;
     }
-    
+
     private static function substStaticFieldName(className:String, fieldName:String):String {
         if (className == "Std") {
             switch (fieldName) {
@@ -637,7 +639,7 @@ class ArduinoCPPBuilder {
             }
         }
     }
-    
+
     private static function addRef(typeName:String) {
         if (typeName == "int" || typeName == "void") {
             return;
@@ -646,7 +648,7 @@ class ArduinoCPPBuilder {
         if (typeName == "Serial") {
             return;
         }
-        
+
         if (_currentClass == null || _currentClass.safeName == typeName || _currentClass.fullName == typeName ) {
             return;
         }
@@ -656,7 +658,7 @@ class ArduinoCPPBuilder {
             _refs.push(typeName);
         }
     }
-    
+
     private static function addLibraries(typeNames:Array<String>) {
         if (typeNames != null) {
             for (t in typeNames) {
@@ -664,19 +666,19 @@ class ArduinoCPPBuilder {
             }
         }
     }
-    
+
     private static function addLibrary(typeName:String) {
         if (typeName == null) {
             return;
         }
-        
+
         typeName = StringTools.replace(typeName, ".h", "");
-        
+
         if (libraries.indexOf(typeName) == -1) {
             libraries.push(typeName);
         }
     }
-    
+
     private static function isInternalType(typeName:String):Bool {
         switch (typeName) {
             case "int" | "LinkedList" | "String" | "void" | "Void":
