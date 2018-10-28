@@ -1,0 +1,4 @@
+-cp src
+-lib hxArduino
+--no-output
+-main Main
