@@ -14,14 +14,14 @@ class Generator {
         haxe.macro.Context.onGenerate(onGenerate);
     }
     #end
-    
+
     public static function onGenerate(types:Array<Type>):Void {
-        haxe.Log.trace = function(v:Dynamic, ?infos:haxe.PosInfos) { 
+        haxe.Log.trace = function(v:Dynamic, ?infos:haxe.PosInfos) {
           Sys.println(v);
         }
-        
+
         var oclasses = [];
-        
+
         for (t in types) {
             switch(t) {
                 case TInst(c, params):
@@ -30,18 +30,18 @@ class Generator {
                         oclasses.push(oclass);
                     }
                 default:
-                    //trace(t);   
+                    //trace(t);
             }
         }
-        
+
         ArduinoCPPBuilder.basePath = Sys.getCwd();
         ArduinoCPPBuilder.classes = oclasses;
         ArduinoCPPBuilder.build();
-        
+
         var libraries:Array<String> = ArduinoCPPBuilder.libraries;
         Compiler.compile(ArduinoCPPBuilder.srcPath, ArduinoCPPBuilder.includePath, ArduinoCPPBuilder.outPath, libraries);
     }
-    
+
     private static function buildClass(c:Ref<ClassType>, params:Array<Type>):OClass {
         if (c.toString() == "Array" || c.toString() == "Std" || c.toString() == "ArrayAccess" || c.toString() == "String" || c.toString() == "Type"
             || StringTools.startsWith(c.toString(), "haxe.")) {
@@ -50,7 +50,7 @@ class Generator {
         } else {
             trace("Generating: " + c.toString());
         }
-        
+
         var oclass = new OClass();
         oclass.fullName = c.toString();
         if (c.get().superClass != null) {
@@ -63,7 +63,7 @@ class Generator {
             oclass.externName = extractMetaValue(c.get().meta, ":native");
         }
         oclass.stackOnly = hasMeta(c.get().meta, ":stackOnly");
-        
+
         var classType:ClassType = c.get();
         var fields:Array<ClassField> = classType.fields.get();
         for (f in fields) {
@@ -83,23 +83,23 @@ class Generator {
                         oclassvar.name = f.name;
                         oclass.classVars.push(oclassvar);
                     }
-                case _: 
+                case _:
                     trace("buildClass not impl: " + f.kind);
             }
         }
-        
+
         return oclass;
     }
-    
+
     private static function buildClassVar(oclass:OClass, e:TypedExpr):OClassVar {
         var oclassvar = new OClassVar();
         oclassvar.expression = buildExpression(e, null);
         return oclassvar;
     }
-    
+
     private static function buildMethod(oclass:OClass, e:TypedExpr):OMethod {
         var omethod:OMethod = null;
-        
+
         if (e != null) {
             switch (e.expr) {
                 case TFunction(tfunc):
@@ -117,32 +117,32 @@ class Generator {
                 case _:
             }
         }
-        
+
         return omethod;
     }
-    
+
     private static function buildExpression(e:TypedExpr, prevExpression:OExpression):OExpression {
         if (e == null) {
             return null;
         }
-        
+
         var oexpr:OExpression = null;
-        
+
         switch (e.expr) {
             case TBlock(el):
                 oexpr = new OBlock();
                 for (e in el) {
                     cast(oexpr, OBlock).expressions.push(buildExpression(e, oexpr));
                 }
-            case TReturn(e): 
+            case TReturn(e):
                 oexpr = new OReturn();
                 oexpr.nextExpression = buildExpression(e, oexpr);
             case TConst(c):
                 oexpr = buildConstant(c);
-                
+
                 // so basically doing some really hacky crap here. If you have an untyped static int like:
                 // public static inline var LED_BUILTIN:Int = untyped 'LED_BUILTIN';
-                // Then the type and the expr dont match (one is string, one is int), so we'll make the 
+                // Then the type and the expr dont match (one is string, one is int), so we'll make the
                 // awful assumption its supposed to be an int constant... will likely go completely wrong
                 // somewhere
                 if (cast(oexpr, OConstant).type != "this") {
@@ -159,16 +159,16 @@ class Generator {
                                 oexpr = new OConstantIdentifier();
                                 cast(oexpr, OConstantIdentifier).name = constantName;
                             }
-                        case _:    
+                        case _:
                     }
                 }
-                
+
             case TVar(v, e):
                 oexpr = new OVar();
                 cast(oexpr, OVar).name = v.name;
                 cast(oexpr, OVar).type = buildType(v.t);
                 oexpr.nextExpression = buildExpression(e, oexpr);
-            case TBinop(op, e1, e2):    
+            case TBinop(op, e1, e2):
                 oexpr = new OBinOp();
                 cast(oexpr, OBinOp).op = buildBinOp(op);
                 cast(oexpr, OBinOp).expression = buildExpression(e1, oexpr);
@@ -220,7 +220,7 @@ class Generator {
                 }
                 cast(oexpr, OFieldStatic).field = cf.get().name;
                 oexpr.nextExpression = buildExpression(e, oexpr);
-            case TArray(e1, e2):    
+            case TArray(e1, e2):
                 oexpr = new OArray();
                 cast(oexpr, OArray).varExpression = buildExpression(e1, oexpr);
                 oexpr.nextExpression = buildExpression(e2, oexpr);
@@ -265,35 +265,41 @@ class Generator {
             case _:
                 trace("buildExpression not impl: " + e.expr);
         }
-        
+
         if (oexpr != null) {
             oexpr.prevExpression = prevExpression;
         }
-        
+
         return oexpr;
     }
-    
+
     private static function isBlock(e:TypedExpr):Bool {
         switch (e.expr) {
             case TBlock(_):
                 return true;
-            case _:    
+            case _:
         }
         return false;
     }
-    
+
     private static function buildConstant(c:Null<TConstant>):OConstant {
         if (c == null) {
             return null;
         }
-        
+
         var oconstant:OConstant = new OConstant();
-        
+
         switch (c) {
             case TInt(i):
                 oconstant.type = "Int";
                 oconstant.value = i;
-            case TString(s):    
+            case TFloat(i):
+                oconstant.type = "Float";
+                oconstant.value = i;
+            case TBool(i):
+                oconstant.type = "Bool";
+                oconstant.value = i;
+            case TString(s):
                 oconstant.type = "String";
                 oconstant.value = s;
             case TThis:
@@ -301,19 +307,19 @@ class Generator {
             case TNull:
                 oconstant.type = "null";
             case _:
-                trace("buildConstant not impl: " + c);
+                trace("Generator: buildConstant not impl: " + c);
         }
-        
+
         return oconstant;
     }
-    
+
     private static function buildType(t:Type):OType {
         var otype = new OType();
-        
+
         switch (t) {
             case TAbstract(t, params):
                 otype.name = t.toString();
-            case TInst(t, params):    
+            case TInst(t, params):
                 otype.name = t.toString();
                 for (p in params) {
                     otype.typeParameters.push(buildType(p));
@@ -321,28 +327,28 @@ class Generator {
             case _:
                 trace("buildType not impl: " + t);
         }
-        
+
         return otype;
     }
-    
+
     private static function extractMetaValue(meta:MetaAccess, name:String):String {
         var metaValue = null;
-        
+
         if (meta.extract(name) != null && meta.extract(name).length > 0) {
             metaValue = ExprTools.toString(meta.extract(name)[0].params[0]);
             metaValue = StringTools.replace(metaValue, "\"", "");
         }
-        
+
         if (name == ":include" && metaValue != null) {
             metaValue = StringTools.replace(metaValue, ".h", "");
         }
-        
+
         return metaValue;
     }
-    
+
     private static function extractMetaValues(meta:MetaAccess, name:String):Array<String> {
         var metaValues = null;
-        
+
         if (meta.extract(name) != null && meta.extract(name).length > 0) {
             metaValues = [];
             var metaEntries = meta.extract(name);
@@ -352,20 +358,20 @@ class Generator {
                 metaValues.push(metaValue);
             }
         }
-        
+
         return metaValues;
     }
-    
+
     private static function hasMeta(meta:MetaAccess, name:String):Bool {
         var b = false;
 
         if (meta.extract(name) != null && meta.extract(name).length > 0) {
             b = true;
         }
-        
+
         return b;
     }
-    
+
     private static function buildBinOp(op:Binop) return switch(op) {
 		case OpAdd: "+";
 		case OpMult: "*";
@@ -397,7 +403,7 @@ class Generator {
             trace("buildBinOp not impl: " + op);
             return "";
     }
-    
+
 	private static function buildUnOp(op:Unop) return switch(op) {
 		case OpIncrement: "++";
 		case OpDecrement: "--";

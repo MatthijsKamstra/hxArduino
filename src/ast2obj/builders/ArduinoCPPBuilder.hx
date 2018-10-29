@@ -342,20 +342,18 @@ class ArduinoCPPBuilder {
             sb.add(olocal.name);
             sb.add(buildExpression(olocal.nextExpression, tabs));
         } else if (Std.is(e, OIf)) {
-            var oif = cast(e, OIf);
+           var oif = cast(e, OIf);
             //sb.add("\n");
             //sb.add(tabs);
             sb.add("if ");
             sb.add(buildExpression(oif.conditionExpression, tabs));
-            sb.add(" { ");
+            sb.add(" ");
             sb.add(buildExpression(oif.ifExpression, tabs));
-            sb.add("; }");
             if (oif.elseExpression != null) {
-                sb.add(" else {  ");
+                sb.add(tabs);
+                sb.add("else ");
                 sb.add(buildExpression(oif.elseExpression, tabs));
-                sb.add("; }");
             }
-            sb.add(";");
         } else if (Std.is(e, OParenthesis)) {
             var oparenthesis = cast(e, OParenthesis);
             sb.add("(");
@@ -574,8 +572,10 @@ class ArduinoCPPBuilder {
                 sb.add("this");
             case "null":
                 sb.add("NULL");
+            case "Bool":
+                sb.add("bool(\"" + c.value + "\")");
             case _:
-                trace("buildConstant not impl: " + c.type);
+                trace("ArduinoCPPBuilder: buildConstant not impl: " + c.type);
         }
 
         return sb;
@@ -681,7 +681,7 @@ class ArduinoCPPBuilder {
 
     private static function isInternalType(typeName:String):Bool {
         switch (typeName) {
-            case "int" | "LinkedList" | "String" | "void" | "Void":
+            case "int" | "LinkedList" | "String" | "void" | "Void" | "Bool" | "Float":
                 return true;
         }
         return false;

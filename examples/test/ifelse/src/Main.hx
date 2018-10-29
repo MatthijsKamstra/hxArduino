@@ -18,7 +18,6 @@ class Main {
             Arduino.digitalWrite(Arduino.LED_BUILTIN, Arduino.LOW);
         }
 
-        // [mck] just verifing if else works
         if(pin2 == Arduino.HIGH){
             Serial.println ('HIGH');
         } else {
