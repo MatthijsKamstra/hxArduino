@@ -351,7 +351,7 @@ class ArduinoCPPBuilder {
             sb.add(buildExpression(oif.ifExpression, tabs));
             sb.add("; }");
             if (oif.elseExpression != null) {
-                sb.add(" else {");
+                sb.add(" else {  ");
                 sb.add(buildExpression(oif.elseExpression, tabs));
                 sb.add("; }");
             }
