@@ -13,10 +13,17 @@ class Main {
 
 		var _int = 1;
 		switch (_int) {
-			case 0: Serial.println ('0');
-			case 1: Serial.println ('1');
-			case 2: Serial.println ('2');
-			case 3: Serial.println ('3');
+			case 0:
+				Serial.println ('0');
+			case 1:
+				Serial.println ('1');
+			case 2:
+				Serial.println ('2');
+			case 3:
+				Serial.println ('3');
+				Serial.println ('and again 3');
+			case 4,5:
+				Serial.println ('4,5');
 			default : Serial.println ("case "+_int+": trace ("+_int+");");
 		}
 	}

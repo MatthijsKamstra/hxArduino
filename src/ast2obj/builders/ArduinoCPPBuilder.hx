@@ -479,6 +479,7 @@ class ArduinoCPPBuilder {
                 sb.add(buildExpression(oswitch.expression, tabs));
                 sb.add(" {\n");
                 var tabs2 = tabs + tabs;
+                var tabs3 = tabs + tabs + tabs;
                 for (ocase in oswitch.cases) {
                     var ncase = 0;
                     for (caseExpression in ocase.caseExpressions) {
@@ -500,16 +501,16 @@ class ArduinoCPPBuilder {
 
                     sb.add(buildExpression(ocase.expression, tabs2));
 
-                    sb.add(tabs2);
-                    sb.add("break;\n\n");
+                    sb.add("; ");
+                    sb.add("break;\n");
                 }
 
                 if (oswitch.defaultExpression != null) {
                     sb.add(tabs2);
                     sb.add("default: ");
                     sb.add(buildExpression(oswitch.defaultExpression, tabs2));
-                    sb.add(tabs2);
-                    sb.add("break;\n\n");
+                    sb.add("; ");
+                    sb.add("break;\n");
                 }
 
                 sb.add(tabs);
@@ -538,7 +539,9 @@ class ArduinoCPPBuilder {
                         ncase++;
                     }
                     sb.add(") ");
+                    sb.add("{ ");
                     sb.add(buildExpression(ocase.expression, tabs));
+                    sb.add("; }");
 
                     if (first == true) {
                         first = false;

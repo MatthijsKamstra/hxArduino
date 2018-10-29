@@ -293,12 +293,12 @@ class Generator {
             case TInt(i):
                 oconstant.type = "Int";
                 oconstant.value = i;
-            case TFloat(i):
-                oconstant.type = "Float";
-                oconstant.value = i;
-            case TBool(i):
-                oconstant.type = "Bool";
-                oconstant.value = i;
+            // case TFloat(i):
+            //     oconstant.type = "Float";
+            //     oconstant.value = i;
+            // case TBool(i):
+            //     oconstant.type = "Bool";
+            //     oconstant.value = i;
             case TString(s):
                 oconstant.type = "String";
                 oconstant.value = s;
