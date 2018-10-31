@@ -2,8 +2,8 @@ package;
 
 class Main {
 
-	var str = 'foo';
-	var _str:String;
+	// var str = 'foo';
+	// var _str:String;
 
 	// var bool = true;
 	// var _bool:Bool;
@@ -18,11 +18,21 @@ class Main {
 	// var _float:Float;
 
 	public function setup() {
-		_str = 'bar';
+		// _str = 'bar';
 		// _bool = false;
 		// _arr = ['1','2','3'];
 		// _int = 0;
 		// _float = 1.2;
+
+		var name = 'Matthijs';
+		Serial.println(name);
+
+		var f = 1.2;
+		Serial.println('$f');
+
+		var isTrue = true;
+		Serial.println('$isTrue');
+
     }
 
     public function loop() {
