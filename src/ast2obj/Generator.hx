@@ -16,9 +16,9 @@ class Generator {
     #end
 
     public static function onGenerate(types:Array<Type>):Void {
-        haxe.Log.trace = function(v:Dynamic, ?infos:haxe.PosInfos) {
-          Sys.println(v);
-        }
+        // haxe.Log.trace = function(v:Dynamic, ?infos:haxe.PosInfos) {
+        //   Sys.println(v);
+        // }
 
         var oclasses = [];
 
@@ -294,10 +294,10 @@ class Generator {
                 oconstant.type = "Int";
                 oconstant.value = i;
             // case TFloat(i):
-            //     oconstant.type = "Float";
+            //     oconstant.type = "float";
             //     oconstant.value = i;
             // case TBool(i):
-            //     oconstant.type = "Bool";
+            //     oconstant.type = "Boolean";
             //     oconstant.value = i;
             case TString(s):
                 oconstant.type = "String";

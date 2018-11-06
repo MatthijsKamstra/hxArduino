@@ -594,6 +594,10 @@ class ArduinoCPPBuilder {
                 typeName = "int";
             case "Void":
                 typeName = "void";
+            case "Bool":
+                typeName = "bool";
+            case "Float":
+                typeName = "float";
             case _:
         }
 
@@ -649,6 +653,14 @@ class ArduinoCPPBuilder {
         }
 
         if (typeName == "Serial") {
+            return;
+        }
+
+        if (typeName == "Bool") {
+            return;
+        }
+
+        if (typeName == "Std") {
             return;
         }
 
